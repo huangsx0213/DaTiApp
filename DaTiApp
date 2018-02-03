@@ -1,0 +1,179 @@
+import configparser
+import os
+import threading
+import time
+from PIL import Image
+import requests
+from aip import AipOcr
+
+
+class Adb(object):
+
+    def __init__(self):
+        # 设置环境变量
+        cmd = r"set path=%path%;D:\Program Files (x86)\Nox\bin"
+        os.popen(cmd).read()
+
+    @staticmethod
+    def adb_devices():
+        # 执行nox_adb devices
+        cmd = r"nox_adb devices"
+        result = os.popen(cmd).read()
+
+        if result.find("List of devices attached") < 0:  # adb is not working
+            print("No device attached")
+        return result
+
+    @staticmethod
+    def tap_a_point(run_device, point):
+        cmd = r'nox_adb -s 127.0.0.1:' + run_device + ' shell input tap ' + point
+        os.popen(cmd).read()
+
+    @staticmethod
+    def get_screenshot(run_device):
+        cmd = r'nox_adb -s 127.0.0.1:' + run_device + r' shell screencap -p /sdcard/screenshot.png'
+        os.popen(cmd).read()
+        cmd = r'nox_adb -s 127.0.0.1:' + run_device + r' pull /sdcard/screenshot.png .\temp\\screenshot_'+threading.current_thread().name+'.png'
+        os.popen(cmd).read()
+
+    @staticmethod
+    def get_file_content():
+        with open(r'.\temp\temp_'+threading.current_thread().name+'.png', 'rb') as fp:
+            return fp.read()
+
+    @staticmethod
+    def get_temp_answer_screenshot():
+        im = Image.open(r".\temp\screenshot_"+threading.current_thread().name+".png")
+        # 截取图片中一块
+        x = 30
+        y = 230
+        w = 420
+        h = 185
+        region = im.crop((x, y, x + w, y + h))
+        region.save(r".\temp\temp_"+threading.current_thread().name+".png")
+
+
+def get_alternative_answers(device_no):
+    # 模拟器中截图
+    Adb.get_screenshot(device_no)
+    # 截取图片中答案的部分
+    Adb.get_temp_answer_screenshot()
+    # 初始化AipFace对象
+    baidu_aip_ocr = AipOcr(APP_ID, API_KEY, SECRET_KEY)
+    # 调用通用文字识别接口
+    result = baidu_aip_ocr.basicGeneral(Adb.get_file_content())
+    # print(result)
+    # print(result["words_result"])
+    s = result["words_result"]
+    # print(s[0]["words"])
+    # Debug用的数据
+    if debug == 1:
+        s = [{'words': '猫屎咖啡来自孟买猫'}, {'words': 'Debug'}, {'words': '海南是国内最大产地'}]
+    print("Current alternative answers are : " + str(s))
+    return s
+
+
+def RunDaTi(device_no):
+
+    print_wait = 1
+    round = 0
+    current_round = 0
+    Adb.adb_devices()
+    Adb.tap_a_point(device_no, "222 275")
+    time.sleep(5)
+    Adb.tap_a_point(device_no, "222 770")
+    while 1:
+        resp = requests.get("http://crop-answer.sm.cn/answer/curr?format=json&activity=million")
+        # print(resp.json())
+        uc_result = resp.json()
+
+        # Debug用数据
+        if debug == 1:
+            uc_result = {"status": 0, "data": {
+                "title": "\u5173\u4e8e\u5496\u5561\u7684\u8bf4\u6cd5\uff0c\u4e0d\u51c6\u786e\u7684\u4e00\u9879\u662f\u4ec0\u4e48\uff1f",
+                "options": [{"confidence": "100", "score": "100",
+                             "title": "\u6d77\u5357\u662f\u56fd\u5185\u6700\u5927\u4ea7\u5730|-|\u732b\u5c4e\u5496\u5561\u6765\u81ea\u5b5f\u4e70\u732b"},
+                            {"confidence": "100", "score": "0", "title": "NONE_B"},
+                            {"confidence": "100", "score": "0", "title": "NONE_C"}], "correct": "0", "official": "",
+                "status": 1, "sid": "291", "round": 12, "dateline": "1517498735", "suggest": "0", "time": 1517498735}}
+
+        if (uc_result["data"]["round"]) != '':
+            current_round = int(uc_result["data"]["round"])
+            # 判断是否开始答题
+            if current_round > round and uc_result["data"]["official"] == '':
+                print("Asking question！")
+                print_wait = 1
+                print('current_round is :' + str(current_round))
+                # uc选择的选项
+                correct = str(uc_result["data"]["correct"])
+                # 官方正确选项
+                answer = uc_result["data"]["options"]
+                # 个性化的题目是不是已经选定答案
+                selected = 0
+                # 获取待选的答案
+                alternative_answers = get_alternative_answers(device_no)
+
+                # uc第一项的答案
+                answers = answer[0]["title"]
+                # 个性化的答案
+                answer_array = answers.split('|-|')
+                # 判断是否个性化题目，如果是，就开始个性化答题判断
+                if len(answer_array) > 1:
+                    for i in range(0, len(answer_array)):
+                        tag_answer = answer_array[i]
+                        for j in range(0, len(alternative_answers)):
+                            if alternative_answers[j]["words"] == tag_answer:
+                                selected = 1
+                                print("Individual answer is :" + tag_answer)
+                                if j == 0:
+                                    print('Individual answer is :' + "A")
+                                    Adb.tap_a_point(device_no, "222 280")
+                                    break
+                                elif j == 1:
+                                    print('Individual answer is :' + "B")
+                                    Adb.tap_a_point(device_no, "222 340")
+                                    break
+                                else:
+                                    print('Individual answer is :' + "C")
+                                    Adb.tap_a_point(device_no, "222 400")
+                                    break
+                        if selected == 1:
+                            break
+                # 开始非个性化答题判断
+                else:
+                    if correct == '0':
+                        print('Non Individual answer is :' + "A :" + answer[0]["title"])
+                        Adb.tap_a_point(device_no, "222 280")
+                    if correct == '1':
+                        print('Non Individual answer is :' + "B :" + answer[1]["title"])
+                        Adb.tap_a_point(device_no, "222 340")
+                    if correct == '2':
+                        print('Non Individual answer is :' + "C :" + answer[2]["title"])
+                        Adb.tap_a_point(device_no, "222 400")
+                round = current_round
+            else:
+                if print_wait == 1:
+                    print("Waiting for next item！")
+                    print_wait = 0
+
+        else:
+            if print_wait == 1:
+                print("DaTi is not yet started！")
+                print_wait = 0
+
+
+if __name__ == '__main__':
+    debug=0
+    config_parser = configparser.ConfigParser()
+    config_parser.read(r'.\config\myapp.conf')
+    APP_ID = config_parser.get('config', 'APP_ID')
+    API_KEY = config_parser.get('config', 'API_KEY')
+    SECRET_KEY = config_parser.get('config', 'SECRET_KEY')
+    device_1_no = config_parser.get('device_1', 'device_no')
+    device_2_no = config_parser.get('device_2', 'device_no')
+
+    t = threading.Thread(target=RunDaTi, args=(device_1_no,), name='device_1_thread')
+    t2 = threading.Thread(target=RunDaTi, args=(device_2_no,), name='device_2_thread')
+    t.start()
+    t2.start()
+
