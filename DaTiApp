@@ -33,24 +33,24 @@ class Adb(object):
     def get_screenshot(run_device):
         cmd = r'nox_adb -s 127.0.0.1:' + run_device + r' shell screencap -p /sdcard/screenshot.png'
         os.popen(cmd).read()
-        cmd = r'nox_adb -s 127.0.0.1:' + run_device + r' pull /sdcard/screenshot.png .\temp\\screenshot_'+threading.current_thread().name+'.png'
+        cmd = r'nox_adb -s 127.0.0.1:' + run_device + r' pull /sdcard/screenshot.png .\temp\\screenshot_' + threading.current_thread().name + '.png'
         os.popen(cmd).read()
 
     @staticmethod
     def get_file_content():
-        with open(r'.\temp\temp_'+threading.current_thread().name+'.png', 'rb') as fp:
+        with open(r'.\temp\temp_' + threading.current_thread().name + '.png', 'rb') as fp:
             return fp.read()
 
     @staticmethod
     def get_temp_answer_screenshot():
-        im = Image.open(r".\temp\screenshot_"+threading.current_thread().name+".png")
+        im = Image.open(r".\temp\screenshot_" + threading.current_thread().name + ".png")
         # 截取图片中一块
         x = 30
         y = 230
         w = 420
         h = 185
         region = im.crop((x, y, x + w, y + h))
-        region.save(r".\temp\temp_"+threading.current_thread().name+".png")
+        region.save(r".\temp\temp_" + threading.current_thread().name + ".png")
 
 
 def get_alternative_answers(device_no):
@@ -60,8 +60,13 @@ def get_alternative_answers(device_no):
     Adb.get_temp_answer_screenshot()
     # 初始化AipFace对象
     baidu_aip_ocr = AipOcr(APP_ID, API_KEY, SECRET_KEY)
+
+    file_content = Adb.get_file_content()
+
     # 调用通用文字识别接口
-    result = baidu_aip_ocr.basicGeneral(Adb.get_file_content())
+    if lock.acquire():
+        result = baidu_aip_ocr.basicGeneral(file_content)
+        lock.release()
     # print(result)
     # print(result["words_result"])
     s = result["words_result"]
@@ -69,12 +74,11 @@ def get_alternative_answers(device_no):
     # Debug用的数据
     if debug == 1:
         s = [{'words': '猫屎咖啡来自孟买猫'}, {'words': 'Debug'}, {'words': '海南是国内最大产地'}]
-    print("Current alternative answers are : " + str(s))
+    print(threading.current_thread().name + " Current alternative answers are : " + str(s))
     return s
 
 
 def RunDaTi(device_no):
-
     print_wait = 1
     round = 0
     current_round = 0
@@ -101,9 +105,9 @@ def RunDaTi(device_no):
             current_round = int(uc_result["data"]["round"])
             # 判断是否开始答题
             if current_round > round and uc_result["data"]["official"] == '':
-                print("Asking question！")
+                print(threading.current_thread().name + " Asking question！")
                 print_wait = 1
-                print('current_round is :' + str(current_round))
+                print(threading.current_thread().name + ' current_round is :' + str(current_round))
                 # uc选择的选项
                 correct = str(uc_result["data"]["correct"])
                 # 官方正确选项
@@ -112,7 +116,6 @@ def RunDaTi(device_no):
                 selected = 0
                 # 获取待选的答案
                 alternative_answers = get_alternative_answers(device_no)
-
                 # uc第一项的答案
                 answers = answer[0]["title"]
                 # 个性化的答案
@@ -124,17 +127,17 @@ def RunDaTi(device_no):
                         for j in range(0, len(alternative_answers)):
                             if alternative_answers[j]["words"] == tag_answer:
                                 selected = 1
-                                print("Individual answer is :" + tag_answer)
+                                print(threading.current_thread().name + " Individual answer is :" + tag_answer)
                                 if j == 0:
-                                    print('Individual answer is :' + "A")
+                                    print(threading.current_thread().name + ' Individual answer is :' + "A")
                                     Adb.tap_a_point(device_no, "222 280")
                                     break
                                 elif j == 1:
-                                    print('Individual answer is :' + "B")
+                                    print(threading.current_thread().name + ' Individual answer is :' + "B")
                                     Adb.tap_a_point(device_no, "222 340")
                                     break
                                 else:
-                                    print('Individual answer is :' + "C")
+                                    print(threading.current_thread().name + ' Individual answer is :' + "C")
                                     Adb.tap_a_point(device_no, "222 400")
                                     break
                         if selected == 1:
@@ -142,28 +145,32 @@ def RunDaTi(device_no):
                 # 开始非个性化答题判断
                 else:
                     if correct == '0':
-                        print('Non Individual answer is :' + "A :" + answer[0]["title"])
+                        print(threading.current_thread().name + ' Non Individual answer is :' + "A :" + answer[0][
+                            "title"])
                         Adb.tap_a_point(device_no, "222 280")
                     if correct == '1':
-                        print('Non Individual answer is :' + "B :" + answer[1]["title"])
+                        print(threading.current_thread().name + ' Non Individual answer is :' + "B :" + answer[1][
+                            "title"])
                         Adb.tap_a_point(device_no, "222 340")
                     if correct == '2':
-                        print('Non Individual answer is :' + "C :" + answer[2]["title"])
+                        print(threading.current_thread().name + ' Non Individual answer is :' + "C :" + answer[2][
+                            "title"])
                         Adb.tap_a_point(device_no, "222 400")
                 round = current_round
             else:
                 if print_wait == 1:
-                    print("Waiting for next item！")
+                    print(threading.current_thread().name + " Waiting for next item！")
                     print_wait = 0
-
+                if current_round == 12:
+                    round = 0
         else:
             if print_wait == 1:
-                print("DaTi is not yet started！")
+                print(threading.current_thread().name + " DaTi is not yet started！")
                 print_wait = 0
 
 
 if __name__ == '__main__':
-    debug=0
+    debug = 0
     config_parser = configparser.ConfigParser()
     config_parser.read(r'.\config\myapp.conf')
     APP_ID = config_parser.get('config', 'APP_ID')
@@ -171,9 +178,14 @@ if __name__ == '__main__':
     SECRET_KEY = config_parser.get('config', 'SECRET_KEY')
     device_1_no = config_parser.get('device_1', 'device_no')
     device_2_no = config_parser.get('device_2', 'device_no')
-
-    t = threading.Thread(target=RunDaTi, args=(device_1_no,), name='device_1_thread')
-    t2 = threading.Thread(target=RunDaTi, args=(device_2_no,), name='device_2_thread')
+    device_3_no = config_parser.get('device_3', 'device_no')
+    device_4_no = config_parser.get('device_4', 'device_no')
+    lock = threading.Lock()
+    t = threading.Thread(target=RunDaTi, args=(device_1_no,), name='device_1')
+    t2 = threading.Thread(target=RunDaTi, args=(device_2_no,), name='device_2')
+    t3 = threading.Thread(target=RunDaTi, args=(device_3_no,), name='device_3')
+    t4 = threading.Thread(target=RunDaTi, args=(device_4_no,), name='device_4')
     t.start()
     t2.start()
-
+    t3.start()
+    t4.start()
