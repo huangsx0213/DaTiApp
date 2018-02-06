@@ -114,14 +114,15 @@ def RunDaTi(device_no):
                 answer = uc_result["data"]["options"]
                 # 个性化的题目是不是已经选定答案
                 selected = 0
-                # 获取待选的答案
-                alternative_answers = get_alternative_answers(device_no)
+
                 # uc第一项的答案
                 answers = answer[0]["title"]
                 # 个性化的答案
                 answer_array = answers.split('|-|')
                 # 判断是否个性化题目，如果是，就开始个性化答题判断
                 if len(answer_array) > 1:
+                    # 获取待选的答案
+                    alternative_answers = get_alternative_answers(device_no)
                     for i in range(0, len(answer_array)):
                         tag_answer = answer_array[i]
                         for j in range(0, len(alternative_answers)):
