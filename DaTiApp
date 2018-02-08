@@ -64,19 +64,36 @@ def get_alternative_answers(device_no):
     file_content = Adb.get_file_content()
 
     # 调用通用文字识别接口
-    if lock.acquire():
-        result = baidu_aip_ocr.basicGeneral(file_content)
-        lock.release()
-    # print(result)
-    # print(result["words_result"])
-    s = result["words_result"]
-    # print(s[0]["words"])
+    result = get_baidu_aip_rusult(baidu_aip_ocr, file_content)
+
     # Debug用的数据
     if debug == 1:
-        s = [{'words': '猫屎咖啡来自孟买猫'}, {'words': 'Debug'}, {'words': '海南是国内最大产地'}]
-    print(threading.current_thread().name + " Current alternative answers are : " + str(s))
-    return s
+        result = [{'words': '猫屎咖啡来自孟买猫'}, {'words': 'Debug'}, {'words': '海南是国内最大产地'}]
 
+    print(threading.current_thread().name + " Current alternative answers are : " + str(result))
+    return result
+
+
+def get_baidu_aip_rusult(baidu_aip_ocr, file_content):
+    try:
+        if lock.acquire():
+            result = baidu_aip_ocr.basicGeneral(file_content)
+            temp_rusult = result["words_result"]
+            lock.release()
+    except Exception as e:
+        lock.release()
+        temp_rusult =get_baidu_aip_rusult(baidu_aip_ocr, file_content)
+
+    return temp_rusult
+
+
+def get_uc_answers():
+    try:
+        resp = requests.get("http://crop-answer.sm.cn/answer/curr?format=json&activity=million")
+    except Exception as e:
+        if resp.status_code!=200:
+            resp = get_uc_answers()
+    return resp
 
 def RunDaTi(device_no):
     print_wait = 1
@@ -87,7 +104,8 @@ def RunDaTi(device_no):
     time.sleep(5)
     Adb.tap_a_point(device_no, "222 770")
     while 1:
-        resp = requests.get("http://crop-answer.sm.cn/answer/curr?format=json&activity=million")
+
+        resp = get_uc_answers()
         # print(resp.json())
         uc_result = resp.json()
 
@@ -170,8 +188,11 @@ def RunDaTi(device_no):
                 print_wait = 0
 
 
+
+
+
 if __name__ == '__main__':
-    debug = 0
+    debug = 1
     config_parser = configparser.ConfigParser()
     config_parser.read(r'.\config\myapp.conf')
     APP_ID = config_parser.get('config', 'APP_ID')
@@ -181,12 +202,15 @@ if __name__ == '__main__':
     device_2_no = config_parser.get('device_2', 'device_no')
     device_3_no = config_parser.get('device_3', 'device_no')
     device_4_no = config_parser.get('device_4', 'device_no')
+    device_5_no = config_parser.get('device_5', 'device_no')
     lock = threading.Lock()
     t = threading.Thread(target=RunDaTi, args=(device_1_no,), name='device_1')
     t2 = threading.Thread(target=RunDaTi, args=(device_2_no,), name='device_2')
     t3 = threading.Thread(target=RunDaTi, args=(device_3_no,), name='device_3')
     t4 = threading.Thread(target=RunDaTi, args=(device_4_no,), name='device_4')
+    t5 = threading.Thread(target=RunDaTi, args=(device_5_no,), name='device_5')
     t.start()
     t2.start()
     t3.start()
     t4.start()
+    t5.start()
