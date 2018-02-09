@@ -44,11 +44,13 @@ class Adb(object):
     @staticmethod
     def get_temp_answer_screenshot():
         im = Image.open(r".\temp\screenshot_" + threading.current_thread().name + ".png")
+
         # 截取图片中一块
         x = 30
         y = 230
         w = 420
         h = 185
+
         region = im.crop((x, y, x + w, y + h))
         region.save(r".\temp\temp_" + threading.current_thread().name + ".png")
 
@@ -89,7 +91,10 @@ def get_baidu_aip_rusult(baidu_aip_ocr, file_content):
 
 def get_uc_answers():
     try:
-        resp = requests.get("http://crop-answer.sm.cn/answer/curr?format=json&activity=million")
+        if activity=="xigua":
+            resp = requests.get("http://crop-answer.sm.cn/answer/curr?format=json&activity=million")
+        elif activity=="zscr":
+            resp = requests.get("http://crop-answer.sm.cn/answer/curr?format=json&activity=cheese")
     except Exception as e:
         if resp.status_code!=200:
             resp = get_uc_answers()
@@ -149,15 +154,15 @@ def RunDaTi(device_no):
                                 print(threading.current_thread().name + " Individual answer is :" + tag_answer)
                                 if j == 0:
                                     print(threading.current_thread().name + ' Individual answer is :' + "A")
-                                    Adb.tap_a_point(device_no, "222 280")
+                                    Adb.tap_a_point(device_no, answer_a)
                                     break
                                 elif j == 1:
                                     print(threading.current_thread().name + ' Individual answer is :' + "B")
-                                    Adb.tap_a_point(device_no, "222 340")
+                                    Adb.tap_a_point(device_no, answer_b)
                                     break
                                 else:
                                     print(threading.current_thread().name + ' Individual answer is :' + "C")
-                                    Adb.tap_a_point(device_no, "222 400")
+                                    Adb.tap_a_point(device_no, answer_c)
                                     break
                         if selected == 1:
                             break
@@ -166,15 +171,15 @@ def RunDaTi(device_no):
                     if correct == '0':
                         print(threading.current_thread().name + ' Non Individual answer is :' + "A :" + answer[0][
                             "title"])
-                        Adb.tap_a_point(device_no, "222 280")
+                        Adb.tap_a_point(device_no,answer_a)
                     if correct == '1':
                         print(threading.current_thread().name + ' Non Individual answer is :' + "B :" + answer[1][
                             "title"])
-                        Adb.tap_a_point(device_no, "222 340")
+                        Adb.tap_a_point(device_no, answer_b)
                     if correct == '2':
                         print(threading.current_thread().name + ' Non Individual answer is :' + "C :" + answer[2][
                             "title"])
-                        Adb.tap_a_point(device_no, "222 400")
+                        Adb.tap_a_point(device_no, answer_c)
                 round = current_round
             else:
                 if print_wait == 1:
@@ -192,7 +197,16 @@ def RunDaTi(device_no):
 
 
 if __name__ == '__main__':
-    debug = 1
+    debug = 0
+    activity="xigua"
+    if activity=="xigua":
+        answer_a="222 280"
+        answer_b="222 340"
+        answer_c="222 400"
+    elif activity=="zscr":
+        answer_a = "222 240"
+        answer_b = "222 300"
+        answer_c = "222 360"
     config_parser = configparser.ConfigParser()
     config_parser.read(r'.\config\myapp.conf')
     APP_ID = config_parser.get('config', 'APP_ID')
@@ -212,5 +226,5 @@ if __name__ == '__main__':
     t.start()
     t2.start()
     t3.start()
-    t4.start()
-    t5.start()
+    #t4.start()
+    #t5.start()
