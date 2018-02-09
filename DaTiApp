@@ -185,7 +185,7 @@ def RunDaTi(device_no):
                 if print_wait == 1:
                     print(threading.current_thread().name + " Waiting for next item！")
                     print_wait = 0
-                if current_round == 12:
+                if uc_result["data"]["official"] == '':
                     round = 0
         else:
             if print_wait == 1:
