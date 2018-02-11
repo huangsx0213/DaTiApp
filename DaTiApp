@@ -230,18 +230,19 @@ if __name__ == '__main__':
     device_4_no = config_parser.get('device_4', 'device_no')
     device_5_no = config_parser.get('device_5', 'device_no')
     lock = threading.Lock()
-    t = threading.Thread(target=RunDaTi, args=(device_1_no,), name='device_1')
-    t2 = threading.Thread(target=RunDaTi, args=(device_2_no,), name='device_2')
-    t3 = threading.Thread(target=RunDaTi, args=(device_3_no,), name='device_3')
-    t4 = threading.Thread(target=RunDaTi, args=(device_4_no,), name='device_4')
-    t5 = threading.Thread(target=RunDaTi, args=(device_5_no,), name='device_5')
+
     if run_device_1=='1':
+        t = threading.Thread(target=RunDaTi, args=(device_1_no,), name='device_1')
         t.start()
     if run_device_2 == '1':
+        t2 = threading.Thread(target=RunDaTi, args=(device_2_no,), name='device_2')
         t2.start()
     if run_device_3 == '1':
+        t3 = threading.Thread(target=RunDaTi, args=(device_3_no,), name='device_3')
         t3.start()
     if run_device_4 == '1':
+        t4 = threading.Thread(target=RunDaTi, args=(device_4_no,), name='device_4')
         t4.start()
     if run_device_5 == '1':
+        t5 = threading.Thread(target=RunDaTi, args=(device_5_no,), name='device_5')
         t5.start()
