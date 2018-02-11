@@ -69,7 +69,7 @@ def get_alternative_answers(device_no):
     result = get_baidu_aip_rusult(baidu_aip_ocr, file_content)
 
     # Debug用的数据
-    if debug == 1:
+    if debug == "1":
         result = [{'words': '猫屎咖啡来自孟买猫'}, {'words': 'Debug'}, {'words': '海南是国内最大产地'}]
 
     print(threading.current_thread().name + " Current alternative answers are : " + str(result))
@@ -115,7 +115,7 @@ def RunDaTi(device_no):
         uc_result = resp.json()
 
         # Debug用数据
-        if debug == 1:
+        if debug == "1":
             uc_result = {"status": 0, "data": {
                 "title": "\u5173\u4e8e\u5496\u5561\u7684\u8bf4\u6cd5\uff0c\u4e0d\u51c6\u786e\u7684\u4e00\u9879\u662f\u4ec0\u4e48\uff1f",
                 "options": [{"confidence": "100", "score": "100",
@@ -197,8 +197,21 @@ def RunDaTi(device_no):
 
 
 if __name__ == '__main__':
-    debug = 0
-    activity="xigua"
+
+    config_parser = configparser.ConfigParser()
+    config_parser.read(r'.\config\myapp.conf')
+
+    debug = config_parser.get('config', 'debug')
+    activity = config_parser.get('config', 'activity')
+    run_device_1 = config_parser.get('device_1', 'run_device_1')
+    run_device_2 = config_parser.get('device_2', 'run_device_2')
+    run_device_3 = config_parser.get('device_3', 'run_device_3')
+    run_device_4 = config_parser.get('device_4', 'run_device_4')
+    run_device_5 = config_parser.get('device_5', 'run_device_5')
+
+    debug = debug
+    activity=activity
+
     if activity=="xigua":
         answer_a="222 280"
         answer_b="222 340"
@@ -207,8 +220,7 @@ if __name__ == '__main__':
         answer_a = "222 240"
         answer_b = "222 300"
         answer_c = "222 360"
-    config_parser = configparser.ConfigParser()
-    config_parser.read(r'.\config\myapp.conf')
+
     APP_ID = config_parser.get('config', 'APP_ID')
     API_KEY = config_parser.get('config', 'API_KEY')
     SECRET_KEY = config_parser.get('config', 'SECRET_KEY')
@@ -223,8 +235,13 @@ if __name__ == '__main__':
     t3 = threading.Thread(target=RunDaTi, args=(device_3_no,), name='device_3')
     t4 = threading.Thread(target=RunDaTi, args=(device_4_no,), name='device_4')
     t5 = threading.Thread(target=RunDaTi, args=(device_5_no,), name='device_5')
-    t.start()
-    t2.start()
-    t3.start()
-    #t4.start()
-    #t5.start()
+    if run_device_1=='1':
+        t.start()
+    if run_device_2 == '1':
+        t2.start()
+    if run_device_3 == '1':
+        t3.start()
+    if run_device_4 == '1':
+        t4.start()
+    if run_device_5 == '1':
+        t5.start()
